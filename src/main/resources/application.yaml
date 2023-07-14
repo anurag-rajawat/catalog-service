@@ -1,0 +1,22 @@
+server:
+  port: 9001
+  shutdown: graceful
+  tomcat:
+    connection-timeout: 2s
+    keep-alive-timeout: 15s
+    threads:
+      min-spare: 5
+      max: 100
+
+spring:
+  application:
+    name: Catalog service
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      username: user
+      password: password
+      database: product_catalog
