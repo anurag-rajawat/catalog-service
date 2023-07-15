@@ -1,0 +1,4 @@
+spring:
+  data:
+    mongodb:
+      uri: # testcontainers will dynamically resolve this, do not change this.
