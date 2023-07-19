@@ -2,7 +2,6 @@ package com.asr.catalogservice;
 
 import com.asr.catalogservice.domain.Product;
 import com.asr.catalogservice.domain.ProductRepository;
-import com.asr.catalogservice.domain.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +15,8 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
@@ -28,19 +29,16 @@ class CatalogServiceApplicationTests {
     @Container
     private static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:6.0");
 
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
-    }
-
     @Autowired
     private WebTestClient testClient;
 
     @Autowired
-    private ProductService productService;
-
-    @Autowired
     private ProductRepository productRepository;
+
+    @DynamicPropertySource
+    static void mongoProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
+    }
 
     @BeforeEach
     void setUp() {
@@ -53,8 +51,7 @@ class CatalogServiceApplicationTests {
         // Given
         var product = Product.of("Name", "Description", "Manufacturer", 1.0, 1L);
         var product2 = Product.of("Name 2", "Description 2", "Manufacturer 2", 2.0, 2L);
-        productService.saveProduct(product);
-        productService.saveProduct(product2);
+        productRepository.saveAll(List.of(product, product2));
 
         // When + Then
         testClient.
@@ -73,7 +70,7 @@ class CatalogServiceApplicationTests {
     void whenGetRequest_productExists_thenProductReturned() {
         // Given
         var product = Product.of("Name", "Description", "Manufacturer", 1.0, 1L);
-        var productId = productService.saveProduct(product).id();
+        var productId = productRepository.save(product).id();
 
         // When + Then
         testClient
@@ -109,7 +106,7 @@ class CatalogServiceApplicationTests {
     void whenPutRequest_thenProductUpdated() {
         // Given
         var existingProduct = Product.of("Name", "Description", "Manufacturer", 1.0, 1L);
-        var productId = productService.saveProduct(existingProduct).id();
+        var productId = productRepository.save(existingProduct).id();
         var updatedProduct = new Product(productId, existingProduct.name(), "Updated Description", "Updated Manufacture",
                 2.0, 2L, existingProduct.createdDate(), existingProduct.lastModifiedDate(), existingProduct.version());
 
@@ -130,7 +127,7 @@ class CatalogServiceApplicationTests {
     void whenDeleteRequest_thenProductDeleted() {
         // Given
         var product = Product.of("Name", "Description", "Manufacturer", 1.0, 1L);
-        var productId = productService.saveProduct(product).id();
+        var productId = productRepository.save(product).id();
 
         // When + Then
         testClient
