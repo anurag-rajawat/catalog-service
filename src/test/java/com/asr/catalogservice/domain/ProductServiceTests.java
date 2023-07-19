@@ -16,7 +16,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.BDDMockito.when;
+import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTests {
@@ -34,13 +34,14 @@ class ProductServiceTests {
         var product1 = Product.of("Name", "Description", "Manufacturer", 1.0, 1L);
         var product2 = Product.of("Name2", "Description2", "Manufacturer2", 2.0, 2L);
         var products = List.of(product1, product2);
+        given(productRepository.findAll())
+                .willReturn(products);
 
         // When
-        when(productRepository.findAll())
-                .thenReturn(products);
+        var actualProducts = productService.findAllProducts();
 
         // Then
-        assertThat(productService.findAllProducts())
+        assertThat(actualProducts)
                 .containsExactlyInAnyOrderElementsOf(products);
     }
 
@@ -49,12 +50,10 @@ class ProductServiceTests {
     void findProductById_whenNotExists_shouldThrowException() {
         // Given
         String productId = "64b13f81160f6f18fe1fdd49";
+        given(productRepository.findById(productId))
+                .willReturn(Optional.empty());
 
-        // When
-        when(productRepository.findById(productId))
-                .thenReturn(Optional.empty());
-
-        // Then
+        // When + Then
         assertThatExceptionOfType(ProductNotFoundException.class)
                 .isThrownBy(() -> productService.findProductById(productId))
                 .withMessage("Product with ID '" + productId + "' was not found.");
@@ -66,10 +65,13 @@ class ProductServiceTests {
         // Given
         String productId = "64b13f81160f6f18fe1fdd49";
         var product = Product.of("Name", "Description", "Manufacturer", 1.0, 1L);
-        when(productRepository.findById(productId))
-                .thenReturn(Optional.of(product));
+        given(productRepository.findById(productId))
+                .willReturn(Optional.of(product));
 
-        // When + Then
+        // When
+        var actualProduct = productService.findProductById(productId);
+
+        // Then
         assertThat(productService.findProductById(productId))
                 .isEqualTo(product);
     }
@@ -79,8 +81,8 @@ class ProductServiceTests {
     void saveProduct_whenAlreadyExists_shouldThrowException() {
         // Given
         var product = Product.of("Name", "Description", "Manufacturer", 1.0, 1L);
-        when(productRepository.existsByName(product.name()))
-                .thenReturn(true);
+        given(productRepository.existsByName(product.name()))
+                .willReturn(true);
 
         // When + Then
         assertThatExceptionOfType(ProductAlreadyExistsException.class)
@@ -93,11 +95,14 @@ class ProductServiceTests {
     void saveProduct_whenNotExists_shouldSaveProduct() {
         // Given
         var product = Product.of("Name", "Description", "Manufacturer", 1.0, 1L);
-        when(productRepository.save(product))
-                .thenReturn(product);
+        given(productRepository.save(product))
+                .willReturn(product);
 
-        // When + Then
-        assertThat(productService.saveProduct(product))
+        // When
+        var actualProduct = productService.saveProduct(product);
+
+        // Then
+        assertThat(actualProduct)
                 .isEqualTo(product);
     }
 
@@ -112,12 +117,14 @@ class ProductServiceTests {
         // Product is immutable, so we need a brand-new product will all expected changes
         var expectedProduct = new Product(null, "Name", "Description", "Manufacturer", 1.0, 1L,
                 null, null, 0);
-        when(productRepository.save(expectedProduct))
-                .thenReturn(expectedProduct);
+        given(productRepository.save(expectedProduct))
+                .willReturn(expectedProduct);
 
-        // When + Then
-        assertThat(productService.saveProduct(product).units())
-                .isOne();
+        // When
+        var actualUnits = productService.saveProduct(product).units();
+
+        // Then
+        assertThat(actualUnits).isOne();
     }
 
     @Test
@@ -126,7 +133,7 @@ class ProductServiceTests {
         // Given
         String productId = "64b13f81160f6f18fe1fdd49";
         var product = Product.of("Name", "Description", "Manufacturer", 1.0, 1L);
-        when(productRepository.existsById(productId)).thenReturn(false);
+        given(productRepository.existsById(productId)).willReturn(false);
 
         // When + Then
         assertThatExceptionOfType(ProductNotFoundException.class)
@@ -141,12 +148,12 @@ class ProductServiceTests {
         String productId = "64b13f81160f6f18fe1fdd49";
         var existingProduct = new Product(productId, "Existing Product", "Existing Description",
                 "Existing Manufacturer", 1.0, 1L, Instant.now(), null, 0);
-        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
+        given(productRepository.findById(productId)).willReturn(Optional.of(existingProduct));
 
         var updatedProduct = new Product(existingProduct.id(), existingProduct.name(), "Updated Description", "Updated Manufacturer",
                 2.0, 2L, existingProduct.createdDate(), existingProduct.lastModifiedDate(), existingProduct.version());
 
-        when(productRepository.save(updatedProduct)).thenReturn(updatedProduct);
+        given(productRepository.save(updatedProduct)).willReturn(updatedProduct);
 
         // When
         Product actualProduct = productService.updateProduct(productId, updatedProduct);
